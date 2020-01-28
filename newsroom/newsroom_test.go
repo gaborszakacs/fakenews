@@ -4,8 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	mock_newsroom "github.com/gaborszakacs/fakenews/mocks"
 	"github.com/gaborszakacs/fakenews/news"
 	"github.com/gaborszakacs/fakenews/newsroom"
+	"github.com/golang/mock/gomock"
 )
 
 type StubNewsFeed struct {
@@ -107,5 +109,21 @@ func TestCreateReport(t *testing.T) {
 
 		e.CreateReport(tag, feed, store)
 		// verify if it was called at all.
+	})
+
+	t.Run("with generated mocks", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+		e := newsroom.Editor{}
+		tag := news.Tag("climate")
+		stories := []news.Story{
+			{Title: "Story1"},
+		}
+		feed := mock_newsroom.NewMockNewsFeed(mockCtrl)
+		feed.EXPECT().TaggedWith(tag).Return(stories).Times(1)
+		report := news.Report{Stories: stories}
+		store := mock_newsroom.NewMockReportAdder(mockCtrl)
+		store.EXPECT().Add(report)
+		e.CreateReport(tag, feed, store)
 	})
 }
