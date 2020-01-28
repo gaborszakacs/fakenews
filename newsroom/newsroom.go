@@ -7,18 +7,19 @@ import (
 	"github.com/gaborszakacs/fakenews/real"
 )
 
-var RealReportStore *real.ReportStore
-
 type Editor struct{}
 
-func (n *Editor) CreateReport(tag news.Tag) error {
-	feed := real.NewsFeed{}
+type NewsFeed interface {
+	TaggedWith(news.Tag) []news.Story
+}
+
+func (n *Editor) CreateReport(tag news.Tag, feed NewsFeed) error {
 	stories := feed.TaggedWith(tag)
 	if len(stories) == 0 {
 		return errors.New("No story found.")
 	}
 
-	store := RealReportStore
+	store := &real.ReportStore{}
 	store.Add(news.Report{Stories: stories})
 
 	return nil
