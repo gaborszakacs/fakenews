@@ -1,6 +1,7 @@
 package newsroom_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/gaborszakacs/fakenews/news"
@@ -25,15 +26,34 @@ func (f *FakeNewsFeed) TaggedWith(tag news.Tag) []news.Story {
 	}
 }
 
+type SpyStore struct {
+	Called  bool
+	Reports []news.Report
+}
+
+func (s *SpyStore) Add(report news.Report) {
+	s.Called = true
+	s.Reports = append(s.Reports, report)
+}
+
 func TestCreateReport(t *testing.T) {
 	t.Run("when there are news", func(t *testing.T) {
 		e := newsroom.Editor{}
 		tag := news.Tag("climate")
 		feed := &StubNewsFeed{Stories: []news.Story{
 			{Title: "Story1"}}}
-		err := e.CreateReport(tag, feed)
+		store := &SpyStore{}
+		err := e.CreateReport(tag, feed, store)
 		if err != nil {
 			t.Errorf("expected no error, got: %s", err)
+		}
+		if !store.Called {
+			t.Errorf("Add was expected to be called")
+		}
+		got := store.Reports
+		want := []news.Report{{Stories: []news.Story{{Title: "Story1"}}}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("Add was called with wrong arguments\n, got:%+v\n, want:%+v\n", got, want)
 		}
 	})
 
@@ -41,7 +61,8 @@ func TestCreateReport(t *testing.T) {
 		e := newsroom.Editor{}
 		tag := news.Tag("climate")
 		feed := &StubNewsFeed{Stories: []news.Story{}}
-		err := e.CreateReport(tag, feed)
+		store := &SpyStore{}
+		err := e.CreateReport(tag, feed, store)
 		if err == nil {
 			t.Errorf("expected error, got none")
 		}
@@ -51,7 +72,8 @@ func TestCreateReport(t *testing.T) {
 		e := newsroom.Editor{}
 		tag := news.Tag("won't have stories")
 		feed := &FakeNewsFeed{}
-		err := e.CreateReport(tag, feed)
+		store := &SpyStore{}
+		err := e.CreateReport(tag, feed, store)
 		if err == nil {
 			t.Errorf("expected error, got none")
 		}
