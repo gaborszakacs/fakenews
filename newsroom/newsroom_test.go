@@ -36,6 +36,16 @@ func (s *SpyStore) Add(report news.Report) {
 	s.Reports = append(s.Reports, report)
 }
 
+type MockStore struct {
+	AddFn  func(news.Report)
+	Called bool
+}
+
+func (s *MockStore) Add(report news.Report) {
+	s.Called = true
+	s.AddFn(report)
+}
+
 func TestCreateReport(t *testing.T) {
 	t.Run("when there are news", func(t *testing.T) {
 		e := newsroom.Editor{}
@@ -77,5 +87,25 @@ func TestCreateReport(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected error, got none")
 		}
+	})
+
+	t.Run("with mock", func(t *testing.T) {
+		e := newsroom.Editor{}
+		tag := news.Tag("won't have stories")
+		feed := &StubNewsFeed{Stories: []news.Story{
+			{Title: "Story1"},
+		},
+		}
+		store := &MockStore{
+			AddFn: func(report news.Report) {
+				got := report
+				want := news.Report{Stories: []news.Story{{Title: "Story1"}}}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("Add was called with wrong arguments\n, got:%+v\n, want:%+v\n", got, want)
+				}
+			}}
+
+		e.CreateReport(tag, feed, store)
+		// verify if it was called at all.
 	})
 }
